@@ -12,6 +12,15 @@ import { FiX } from "react-icons/fi";
 import API from "../../services/api";
 
 function BorrowBooks() {
+
+    const [page, setPage] =
+  useState(1);
+
+const [totalPages, setTotalPages] =
+  useState(1);
+
+const [sort, setSort] =
+  useState("newest");
   const [borrows, setBorrows] =
     useState([]);
 
@@ -22,20 +31,23 @@ function BorrowBooks() {
     useState(null);
 
   useEffect(() => {
-    fetchBorrowHistory();
-  }, []);
+  fetchBorrowHistory();
+}, [page, sort]);
 
   const fetchBorrowHistory =
     async () => {
       try {
         const response =
-          await API.get(
-            "/borrow/getBorrowHistory/history"
-          );
+  await API.get(
+    `/borrow/getBorrowHistory/history?page=${page}&limit=8&sort=${sort}`
+  );
 
         setBorrows(
           response.data.history || []
         );
+        setTotalPages(
+  response.data.totalPages || 1
+);
       } catch (error) {
         toast.error(
           "Failed to load borrowed books"
@@ -96,6 +108,37 @@ function BorrowBooks() {
         </p>
 
       </div>
+
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+
+  <div className="flex justify-end">
+
+    <select
+      value={sort}
+      onChange={(e) => {
+        setPage(1);
+        setSort(
+          e.target.value
+        );
+      }}
+      className="border border-slate-300 rounded-xl px-4 py-3 text-slate-700"
+    >
+      <option value="newest">
+        Newest First
+      </option>
+
+      <option value="oldest">
+        Oldest First
+      </option>
+
+      <option value="fine">
+        Highest Fine
+      </option>
+    </select>
+
+  </div>
+
+</div>
 
       {/* Count */}
 
@@ -230,6 +273,47 @@ function BorrowBooks() {
 
         </div>
       )}
+      {totalPages > 1 && (
+
+  <div className="flex justify-center items-center gap-3 mt-10">
+
+    <button
+      disabled={page === 1}
+      onClick={() =>
+        setPage(page - 1)
+      }
+      className={`px-4 py-2 rounded-xl font-medium ${
+        page === 1
+          ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+          : "bg-white border hover:bg-slate-50"
+      }`}
+    >
+      Previous
+    </button>
+
+    <div className="px-5 py-2 bg-indigo-600 text-white rounded-xl font-semibold">
+      {page} / {totalPages}
+    </div>
+
+    <button
+      disabled={
+        page === totalPages
+      }
+      onClick={() =>
+        setPage(page + 1)
+      }
+      className={`px-4 py-2 rounded-xl font-medium ${
+        page === totalPages
+          ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+          : "bg-white border hover:bg-slate-50"
+      }`}
+    >
+      Next
+    </button>
+
+  </div>
+
+)}
 
       {/* Details Modal */}
 

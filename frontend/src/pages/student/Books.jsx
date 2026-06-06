@@ -8,6 +8,25 @@ import { FiX } from "react-icons/fi";
 import API from "../../services/api";
 
 function Books() {
+
+    const [search, setSearch] =
+  useState("");
+
+const [category, setCategory] =
+  useState("");
+
+const [available, setAvailable] =
+  useState(false);
+
+const [sort, setSort] =
+  useState("newest");
+
+const [page, setPage] =
+  useState(1);
+
+const [totalPages, setTotalPages] =
+  useState(1);
+
   const [books, setBooks] =
     useState([]);
 
@@ -21,8 +40,14 @@ function Books() {
   useState(null);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+  fetchData();
+}, [
+  search,
+  category,
+  available,
+  sort,
+  page,
+]);
 
   const fetchData =
     async () => {
@@ -31,9 +56,16 @@ function Books() {
           booksRes,
           requestsRes,
         ] = await Promise.all([
-          API.get(
-            "/books/getAllBooks"
-          ),
+          API.get("/books/getAllBooks", {
+  params: {
+    search,
+    category,
+    available,
+    sort,
+    page,
+    limit: 8,
+  },
+}),
 
           API.get(
             "/borrow/myRequests"
@@ -43,6 +75,9 @@ function Books() {
         setBooks(
           booksRes.data.books || []
         );
+        setTotalPages(
+  booksRes.data.totalPages || 1
+);
 
         setRequests(
           requestsRes.data.requests ||
@@ -116,6 +151,85 @@ function Books() {
         </p>
 
       </div>
+
+      <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-200">
+
+  <div className="grid md:grid-cols-4 gap-4 text-slate-500">
+
+    {/* Search */}
+
+    <input
+      type="text "
+      placeholder="Search books..."
+      value={search}
+      onChange={(e) => {
+        setPage(1);
+        setSearch(e.target.value);
+      }}
+      className="border border-slate-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
+    />
+
+    {/* Category */}
+
+    <input
+      type="text"
+      placeholder="Category"
+      value={category}
+      onChange={(e) => {
+        setPage(1);
+        setCategory(
+          e.target.value
+        );
+      }}
+      className="border border-slate-300 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500"
+    />
+
+    {/* Sort */}
+
+    <select
+      value={sort}
+      onChange={(e) => {
+        setPage(1);
+        setSort(e.target.value);
+      }}
+      className="border border-slate-300 rounded-xl px-4 py-3"
+    >
+      <option value="newest">
+        Newest
+      </option>
+
+      <option value="oldest">
+        Oldest
+      </option>
+
+      <option value="title">
+        Title A-Z
+      </option>
+    </select>
+
+    {/* Available */}
+
+    <label className="flex items-center gap-3 border border-slate-300 rounded-xl px-4 py-3 cursor-pointer">
+
+      <input
+        type="checkbox"
+        checked={available}
+        onChange={(e) => {
+          setPage(1);
+
+          setAvailable(
+            e.target.checked
+          );
+        }}
+      />
+
+      Available Only
+
+    </label>
+
+  </div>
+
+</div>
 
       {/* Count */}
       <div className="flex justify-between items-center">
@@ -254,6 +368,47 @@ function Books() {
 
         </div>
       )}
+      {totalPages > 1 && (
+
+  <div className="flex justify-center items-center gap-3 mt-10">
+
+    <button
+      disabled={page === 1}
+      onClick={() =>
+        setPage(page - 1)
+      }
+      className={`px-4 py-2 rounded-xl font-medium ${
+        page === 1
+          ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+          : "bg-white border hover:bg-slate-50"
+      }`}
+    >
+      Previous
+    </button>
+
+    <div className="px-5 py-2 bg-emerald-600 text-white rounded-xl font-semibold">
+      {page} / {totalPages}
+    </div>
+
+    <button
+      disabled={
+        page === totalPages
+      }
+      onClick={() =>
+        setPage(page + 1)
+      }
+      className={`px-4 py-2 rounded-xl font-medium ${
+        page === totalPages
+          ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+          : "bg-white border hover:bg-slate-50"
+      }`}
+    >
+      Next
+    </button>
+
+  </div>
+
+)}
       {selectedBook && (
   <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
   onClick={() => setSelectedBook(null)}>

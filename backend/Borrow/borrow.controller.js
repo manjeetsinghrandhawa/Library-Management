@@ -179,37 +179,89 @@ exports.returnBook = async (
   }
 };
 
-exports.getBorrowHistory =
-  async (req, res) => {
-    try {
-      const history =
-        await Borrow.find({
-          user: req.user._id,
-        })
-          .populate(
-            "book",
-            "title author category"
-          )
-          .sort({
-            createdAt: -1,
-          });
+exports.getBorrowHistory = async (
+  req,
+  res
+) => {
+  try {
+    const {
+      page = 1,
+      limit = 8,
+      sort = "newest",
+    } = req.query;
 
-      return res.status(200).json({
-        success: true,
-        count:
-          history.length,
-        history,
-      });
-    } catch (error) {
-      console.error(error);
+    let sortOption = {};
 
-      return res.status(500).json({
-        success: false,
-        message:
-          "Failed to fetch history",
-      });
+    switch (sort) {
+      case "oldest":
+        sortOption = {
+          createdAt: 1,
+        };
+        break;
+
+      case "fine":
+        sortOption = {
+          fine: -1,
+        };
+        break;
+
+      default:
+        sortOption = {
+          createdAt: -1,
+        };
     }
-  };
+
+    const currentPage =
+      Number(page);
+
+    const pageLimit =
+      Number(limit);
+
+    const skip =
+      (currentPage - 1) *
+      pageLimit;
+
+    const totalBorrows =
+      await Borrow.countDocuments({
+        user: req.user._id,
+      });
+
+    const history =
+      await Borrow.find({
+        user: req.user._id,
+      })
+        .populate(
+          "book",
+          "title author category"
+        )
+        .sort(sortOption)
+        .skip(skip)
+        .limit(pageLimit);
+
+    return res.status(200).json({
+      success: true,
+
+      totalBorrows,
+
+      currentPage,
+
+      totalPages: Math.ceil(
+        totalBorrows /
+          pageLimit
+      ),
+
+      history,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Failed to fetch history",
+    });
+  }
+};
 
   exports.getIssuedBooks =
   async (req, res) => {
@@ -477,27 +529,107 @@ exports.requestBook =
     }
   };
 
-  exports.getMyRequests =
-  async (req, res) => {
-    try {
-      const requests =
-        await BorrowRequest.find({
-          user: req.user._id,
-        }).populate(
+  exports.getMyRequests = async (
+  req,
+  res
+) => {
+  try {
+    const {
+      status,
+      search = "",
+      page = 1,
+      limit = 5,
+      sort = "newest",
+    } = req.query;
+
+    const query = {
+      user: req.user._id,
+    };
+
+    if (status) {
+      query.status = status;
+    }
+
+    let sortOption = {};
+
+    switch (sort) {
+      case "oldest":
+        sortOption = {
+          createdAt: 1,
+        };
+        break;
+
+      default:
+        sortOption = {
+          createdAt: -1,
+        };
+    }
+
+    const currentPage =
+      Number(page);
+
+    const pageLimit =
+      Number(limit);
+
+    const skip =
+      (currentPage - 1) *
+      pageLimit;
+
+    const requests =
+      await BorrowRequest.find(
+        query
+      )
+        .populate(
           "book",
           "title author"
-        );
+        )
+        .sort(sortOption)
+        .skip(skip)
+        .limit(pageLimit);
 
-      return res.status(200).json({
-        success: true,
-        requests,
-      });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-      });
-    }
-  };
+    const totalRequests =
+      await BorrowRequest.countDocuments(
+        query
+      );
+
+    const filteredRequests =
+      requests.filter(
+        (request) =>
+          request.book?.title
+            ?.toLowerCase()
+            .includes(
+              search.toLowerCase()
+            ) ||
+          request.book?.author
+            ?.toLowerCase()
+            .includes(
+              search.toLowerCase()
+            )
+      );
+
+    return res.status(200).json({
+      success: true,
+      requests:
+        search
+          ? filteredRequests
+          : requests,
+
+      totalRequests,
+
+      currentPage,
+
+      totalPages:
+        Math.ceil(
+          totalRequests /
+            pageLimit
+        ),
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+    });
+  }
+};
 
   exports.getAllRequests =
   async (req, res) => {

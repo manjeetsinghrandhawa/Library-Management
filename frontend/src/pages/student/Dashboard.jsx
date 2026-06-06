@@ -6,6 +6,50 @@ import toast from "react-hot-toast";
 import API from "../../services/api";
 
 function Dashboard() {
+
+    // Requests
+
+const [
+  requestPage,
+  setRequestPage,
+] = useState(1);
+
+const [
+  requestTotalPages,
+  setRequestTotalPages,
+] = useState(1);
+
+const [
+  requestStatus,
+  setRequestStatus,
+] = useState("");
+
+const [
+  requestSort,
+  setRequestSort,
+] = useState("newest");
+
+// History
+
+const [
+  historyPage,
+  setHistoryPage,
+] = useState(1);
+
+const [
+  historyTotalPages,
+  setHistoryTotalPages,
+] = useState(1);
+
+const [
+  historyStatus,
+  setHistoryStatus,
+] = useState("");
+
+const [
+  historySort,
+  setHistorySort,
+] = useState("newest");
   const navigate = useNavigate();
 
   const [history, setHistory] =
@@ -18,28 +62,50 @@ function Dashboard() {
     useState(true);
 
   useEffect(() => {
-    fetchData();
-  }, []);
+  fetchData();
+}, [
+  requestPage,
+  requestStatus,
+  requestSort,
+  historyPage,
+  historyStatus,
+  historySort,
+]);
 
-  const fetchData = async () => {
+  const fetchData =
+  async () => {
     try {
-      const [historyRes, requestRes] =
-        await Promise.all([
-          API.get(
-            "/borrow/getBorrowHistory/history"
-          ),
+      const [
+        historyRes,
+        requestRes,
+      ] = await Promise.all([
+        API.get(
+          `/borrow/getBorrowHistory/history?page=${historyPage}&limit=5&status=${historyStatus}&sort=${historySort}`
+        ),
 
-          API.get(
-            "/borrow/myRequests"
-          ),
-        ]);
+        API.get(
+          `/borrow/myRequests?page=${requestPage}&limit=5&status=${requestStatus}&sort=${requestSort}`
+        ),
+      ]);
 
       setHistory(
-        historyRes.data.history || []
+        historyRes.data.history ||
+          []
       );
 
       setRequests(
-        requestRes.data.requests || []
+        requestRes.data.requests ||
+          []
+      );
+
+      setHistoryTotalPages(
+        historyRes.data
+          .totalPages || 1
+      );
+
+      setRequestTotalPages(
+        requestRes.data
+          .totalPages || 1
       );
     } catch (error) {
       toast.error(
@@ -201,11 +267,65 @@ function Dashboard() {
     {/* Borrow Requests */}
     <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
 
-      <div className="px-6 py-5 border-b border-slate-200">
-        <h2 className="text-xl font-semibold text-slate-500">
-          My Borrow Requests
-        </h2>
-      </div>
+      <div className="px-6 py-5 border-b border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+  <h2 className="text-xl font-semibold text-slate-500">
+    My Borrow Requests
+  </h2>
+
+  <div className="flex gap-3 flex-wrap">
+
+    <select
+      value={requestStatus}
+      onChange={(e) => {
+        setRequestPage(1);
+        setRequestStatus(
+          e.target.value
+        );
+      }}
+      className="border rounded-xl px-4 py-2 text-slate-500"
+    >
+      <option value="">
+        All Status
+      </option>
+
+      <option value="PENDING">
+        Pending
+      </option>
+
+      <option value="APPROVED">
+        Approved
+      </option>
+
+      <option value="REJECTED">
+        Rejected
+      </option>
+
+    </select>
+
+    <select
+      value={requestSort}
+      onChange={(e) => {
+        setRequestPage(1);
+        setRequestSort(
+          e.target.value
+        );
+      }}
+      className="border rounded-xl px-4 py-2 text-slate-500"
+    >
+      <option value="newest">
+        Newest
+      </option>
+
+      <option value="oldest">
+        Oldest
+      </option>
+
+    </select>
+
+  </div>
+
+</div>
 
       {requests.length === 0 ? (
         <div className="p-12 text-center">
@@ -286,14 +406,174 @@ function Dashboard() {
 
     </div>
 
+    {requestTotalPages > 1 && (
+
+  <div className="flex justify-center items-center gap-3 p-6">
+
+    <button
+      disabled={
+        requestPage === 1
+      }
+      onClick={() =>
+        setRequestPage(
+          requestPage - 1
+        )
+      }
+      className={`px-4 py-2 rounded-xl ${
+        requestPage === 1
+          ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+          : "bg-white border hover:bg-slate-50"
+      }`}
+    >
+      Previous
+    </button>
+
+    <div className="px-5 py-2 bg-emerald-600 text-white rounded-xl font-semibold">
+      {requestPage} /{" "}
+      {requestTotalPages}
+    </div>
+
+    <button
+      disabled={
+        requestPage ===
+        requestTotalPages
+      }
+      onClick={() =>
+        setRequestPage(
+          requestPage + 1
+        )
+      }
+      className={`px-4 py-2 rounded-xl ${
+        requestPage ===
+        requestTotalPages
+          ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+          : "bg-white border hover:bg-slate-50"
+      }`}
+    >
+      Next
+    </button>
+
+  </div>
+
+)}
+
     {/* Borrow History */}
     <div className="bg-white rounded-3xl shadow-sm border border-slate-200 overflow-hidden">
 
-      <div className="px-6 py-5 border-b border-slate-200">
-        <h2 className="text-xl font-semibold text-slate-500">
-          Borrow History
-        </h2>
-      </div>
+      <div className="px-6 py-5 border-b border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+
+  <h2 className="text-xl font-semibold text-slate-500">
+    Borrow History
+  </h2>
+
+  <div className="flex gap-3 flex-wrap">
+
+    <select
+      value={historyStatus}
+      onChange={(e) => {
+        setHistoryPage(1);
+        setHistoryStatus(
+          e.target.value
+        );
+      }}
+      className="border rounded-xl px-4 py-2 text-slate-500"
+    >
+      <option value="">
+        All Status
+      </option>
+
+      <option value="BORROWED">
+        Borrowed
+      </option>
+
+      <option value="OVERDUE">
+        Overdue
+      </option>
+
+      <option value="RETURNED">
+        Returned
+      </option>
+
+    </select>
+
+    <select
+      value={historySort}
+      onChange={(e) => {
+        setHistoryPage(1);
+        setHistorySort(
+          e.target.value
+        );
+      }}
+      className="border rounded-xl px-4 py-2 text-slate-500"
+    >
+      <option value="newest">
+        Newest
+      </option>
+
+      <option value="oldest">
+        Oldest
+      </option>
+
+      <option value="fine">
+        Highest Fine
+      </option>
+
+    </select>
+
+  </div>
+
+</div>
+
+{historyTotalPages > 1 && (
+
+  <div className="flex justify-center items-center gap-3 p-6">
+
+    <button
+      disabled={
+        historyPage === 1
+      }
+      onClick={() =>
+        setHistoryPage(
+          historyPage - 1
+        )
+      }
+      className={`px-4 py-2 rounded-xl ${
+        historyPage === 1
+          ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+          : "bg-white border hover:bg-slate-50"
+      }`}
+    >
+      Previous
+    </button>
+
+    <div className="px-5 py-2 bg-emerald-600 text-white rounded-xl font-semibold">
+      {historyPage} /{" "}
+      {historyTotalPages}
+    </div>
+
+    <button
+      disabled={
+        historyPage ===
+        historyTotalPages
+      }
+      onClick={() =>
+        setHistoryPage(
+          historyPage + 1
+        )
+      }
+      className={`px-4 py-2 rounded-xl ${
+        historyPage ===
+        historyTotalPages
+          ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+          : "bg-white border hover:bg-slate-50"
+      }`}
+    >
+      Next
+    </button>
+
+  </div>
+
+)}
 
       {history.length === 0 ? (
         <div className="p-12 text-center">
