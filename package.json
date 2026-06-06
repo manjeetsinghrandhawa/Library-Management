@@ -1,0 +1,19 @@
+{
+  "name": "library-management",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "concurrently -n \"frontend,backend\" -c \"bgBlue,bgYellow\" \"npm run dev --prefix frontend\" \"npm run dev --prefix backend\"",
+    "dev:frontend": "npm run dev --prefix frontend",
+    "dev:backend": "npm run dev --prefix backend"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@tailwindcss/vite": "^4.3.0",
+    "concurrently": "^10.0.3",
+    "tailwindcss": "^4.3.0"
+  }
+}
