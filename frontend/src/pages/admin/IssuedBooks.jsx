@@ -11,26 +11,57 @@ import {
 import { getIssuedBooks } from "../../services/adminApi";
 
 function IssuedBooks() {
+
+  const [search, setSearch] =
+  useState("");
+
+const [status, setStatus] =
+  useState("");
+
+const [sort, setSort] =
+  useState("newest");
+
+const [page, setPage] =
+  useState(1);
+
+const [totalPages, setTotalPages] =
+  useState(1);
+
   const [books, setBooks] =
     useState([]);
 
   useEffect(() => {
-    fetchBooks();
-  }, []);
+  fetchBooks();
+}, [
+  search,
+  status,
+  sort,
+  page,
+]);
 
   const fetchBooks =
-    async () => {
-      try {
-        const response =
-          await getIssuedBooks();
+  async () => {
+    try {
+      const response =
+        await getIssuedBooks({
+          search,
+          status,
+          sort,
+          page,
+          limit: 9,
+        });
 
-        setBooks(
-          response.data.data
-        );
-      } catch (error) {
-        console.log(error);
-      }
-    };
+      setBooks(
+        response.data.data
+      );
+
+      setTotalPages(
+        response.data.totalPages
+      );
+    } catch (error) {
+      console.log(error);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -59,6 +90,81 @@ function IssuedBooks() {
         </div>
 
       </div>
+
+      <div className="bg-white rounded-3xl p-6 border border-slate-200 shadow-sm mb-8">
+
+  <div className="grid md:grid-cols-4 gap-4">
+
+    <input
+      type="text"
+      placeholder="Search books or users..."
+      value={search}
+      onChange={(e) => {
+        setPage(1);
+        setSearch(
+          e.target.value
+        );
+      }}
+      className="border border-slate-300 rounded-xl px-4 py-3 text-slate-600"
+    />
+
+    <select
+      value={status}
+      onChange={(e) => {
+        setPage(1);
+        setStatus(
+          e.target.value
+        );
+      }}
+      className="border border-slate-300 rounded-xl px-4 py-3 text-slate-600"
+    >
+      <option value="">
+        All Status
+      </option>
+
+      <option value="BORROWED">
+        Borrowed
+      </option>
+
+      <option value="OVERDUE">
+        Overdue
+      </option>
+    </select>
+
+    <select
+      value={sort}
+      onChange={(e) => {
+        setPage(1);
+        setSort(
+          e.target.value
+        );
+      }}
+      className="border border-slate-300 rounded-xl px-4 py-3 text-slate-600"
+    >
+      <option value="newest">
+        Newest
+      </option>
+
+      <option value="oldest">
+        Oldest
+      </option>
+
+      <option value="dueDate">
+        Due Date
+      </option>
+
+      <option value="daysLeft">
+        Days Left
+      </option>
+    </select>
+
+    <div className="bg-blue-50 rounded-xl flex items-center justify-center font-semibold text-blue-700">
+      {books.length} Records
+    </div>
+
+  </div>
+
+</div>
 
       {/* Empty State */}
       {books.length === 0 ? (
@@ -212,6 +318,46 @@ function IssuedBooks() {
 
         </div>
       )}
+
+      {totalPages > 1 && (
+  <div className="flex justify-center items-center gap-3 mt-10">
+
+    <button
+      disabled={page === 1}
+      onClick={() =>
+        setPage(page - 1)
+      }
+      className={`px-4 py-2 rounded-xl ${
+        page === 1
+          ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+          : "bg-white border hover:bg-slate-50"
+      }`}
+    >
+      Previous
+    </button>
+
+    <div className="px-5 py-2 bg-blue-600 text-white rounded-xl font-semibold">
+      {page} / {totalPages}
+    </div>
+
+    <button
+      disabled={
+        page === totalPages
+      }
+      onClick={() =>
+        setPage(page + 1)
+      }
+      className={`px-4 py-2 rounded-xl ${
+        page === totalPages
+          ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+          : "bg-white border hover:bg-slate-50"
+      }`}
+    >
+      Next
+    </button>
+
+  </div>
+)}
 
     </div>
   );

@@ -23,15 +23,28 @@ export const getUserBorrowHistory = (
   );
 
 // Issued Books
-export const getIssuedBooks = () =>
-  API.get("/borrow/getIssuedBooks");
+export const getIssuedBooks = (
+  params
+) =>
+  API.get(
+    "/admin/getIssuedBooks",
+    {
+      params,
+    }
+  );
 
 export const getOverdueBooks = () =>
   API.get("/borrow/getOverdueBooks");
 
 // Requests
-export const getAllRequests = () =>
-  API.get("/borrow/getAllRequests");
+export const getAllRequests =
+  (params) =>
+    API.get(
+      "/admin/getAllRequests",
+      {
+        params,
+      }
+    );
 
 export const approveRequest = (
   requestId

@@ -263,59 +263,145 @@ exports.getBorrowHistory = async (
   }
 };
 
-  exports.getIssuedBooks =
-  async (req, res) => {
-    try {
-      const borrows =
-        await Borrow.find({
-          status: {
-            $in: [
-              "BORROWED",
-              "OVERDUE",
-            ],
-          },
-        })
-          .populate(
-            "user",
-            "firstName lastName email"
-          )
-          .populate(
-            "book",
-            "title author"
+  exports.getIssuedBooks = async (req, res) => {
+  try {
+    const {
+      search = "",
+      status,
+      page = 1,
+      limit = 9,
+      sort = "newest",
+    } = req.query;
+
+    const currentPage = Number(page);
+    const pageLimit = Number(limit);
+
+    const query = {
+      status: {
+        $in: ["BORROWED", "OVERDUE"],
+      },
+    };
+
+    if (
+      status &&
+      ["BORROWED", "OVERDUE"].includes(status)
+    ) {
+      query.status = status;
+    }
+
+    let sortOption = {};
+
+    switch (sort) {
+      case "oldest":
+        sortOption = {
+          createdAt: 1,
+        };
+        break;
+
+      case "dueDate":
+        sortOption = {
+          dueDate: 1,
+        };
+        break;
+
+      default:
+        sortOption = {
+          createdAt: -1,
+        };
+    }
+
+    let borrows = await Borrow.find(query)
+      .populate(
+        "user",
+        "firstName lastName email"
+      )
+      .populate(
+        "book",
+        "title author"
+      )
+      .sort(sortOption);
+
+    if (search) {
+      const keyword =
+        search.toLowerCase();
+
+      borrows = borrows.filter(
+        (borrow) =>
+          borrow.book?.title
+            ?.toLowerCase()
+            .includes(keyword) ||
+          borrow.book?.author
+            ?.toLowerCase()
+            .includes(keyword) ||
+          borrow.user?.firstName
+            ?.toLowerCase()
+            .includes(keyword) ||
+          borrow.user?.lastName
+            ?.toLowerCase()
+            .includes(keyword) ||
+          borrow.user?.email
+            ?.toLowerCase()
+            .includes(keyword)
+      );
+    }
+
+    const data = borrows.map(
+      (borrow) => {
+        const daysLeft =
+          Math.ceil(
+            (borrow.dueDate -
+              new Date()) /
+              (1000 *
+                60 *
+                60 *
+                24)
           );
 
-      const data =
-        borrows.map(
-          (borrow) => {
-            const daysLeft =
-              Math.ceil(
-                (borrow.dueDate -
-                  new Date()) /
-                  (1000 *
-                    60 *
-                    60 *
-                    24)
-              );
+        return {
+          ...borrow.toObject(),
+          daysLeft,
+        };
+      }
+    );
 
-            return {
-              ...borrow.toObject(),
-              daysLeft,
-            };
-          }
-        );
-
-      return res.status(200).json({
-        success: true,
-        data,
-      });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
-        message:
-          "Failed to fetch issued books",
-      });
+    if (sort === "daysLeft") {
+      data.sort(
+        (a, b) =>
+          a.daysLeft - b.daysLeft
+      );
     }
-  };
+
+    const totalBooks = data.length;
+
+    const paginatedData =
+      data.slice(
+        (currentPage - 1) * pageLimit,
+        currentPage * pageLimit
+      );
+
+    return res.status(200).json({
+      success: true,
+
+      totalBooks,
+
+      currentPage,
+
+      totalPages: Math.ceil(
+        totalBooks / pageLimit
+      ),
+
+      data: paginatedData,
+    });
+  } catch (error) {
+    console.log(error);
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Failed to fetch issued books",
+    });
+  }
+};
 
   exports.getOverdueBooks =
   async (req, res) => {
@@ -634,8 +720,53 @@ exports.requestBook =
   exports.getAllRequests =
   async (req, res) => {
     try {
-      const requests =
-        await BorrowRequest.find()
+      const {
+        search = "",
+        status,
+        page = 1,
+        limit = 10,
+        sort = "newest",
+      } = req.query;
+
+      const query = {};
+
+      // Status Filter
+      if (
+        status &&
+        [
+          "PENDING",
+          "APPROVED",
+          "REJECTED",
+        ].includes(status)
+      ) {
+        query.status = status;
+      }
+
+      let sortOption = {};
+
+      switch (sort) {
+        case "oldest":
+          sortOption = {
+            createdAt: 1,
+          };
+          break;
+
+        case "name":
+          sortOption = {
+            createdAt: -1,
+          };
+          break;
+
+        default:
+          sortOption = {
+            createdAt: -1,
+          };
+      }
+
+      let requests =
+        await BorrowRequest.find(
+          query
+        )
           .populate(
             "user",
             "firstName lastName email"
@@ -644,21 +775,95 @@ exports.requestBook =
             "book",
             "title author"
           )
-          .sort({
-            createdAt: -1,
-          });
+          .sort(sortOption);
+
+      // Search
+      if (search) {
+        const keyword =
+          search.toLowerCase();
+
+        requests =
+          requests.filter(
+            (req) =>
+              req.book?.title
+                ?.toLowerCase()
+                .includes(
+                  keyword
+                ) ||
+              req.book?.author
+                ?.toLowerCase()
+                .includes(
+                  keyword
+                ) ||
+              req.user?.firstName
+                ?.toLowerCase()
+                .includes(
+                  keyword
+                ) ||
+              req.user?.lastName
+                ?.toLowerCase()
+                .includes(
+                  keyword
+                ) ||
+              req.user?.email
+                ?.toLowerCase()
+                .includes(
+                  keyword
+                )
+          );
+      }
+
+      if (sort === "name") {
+        requests.sort((a, b) =>
+          `${a.user?.firstName} ${a.user?.lastName}`.localeCompare(
+            `${b.user?.firstName} ${b.user?.lastName}`
+          )
+        );
+      }
+
+      const currentPage =
+        Number(page);
+
+      const pageLimit =
+        Number(limit);
+
+      const totalRequests =
+        requests.length;
+
+      const paginatedRequests =
+        requests.slice(
+          (currentPage - 1) *
+            pageLimit,
+          currentPage *
+            pageLimit
+        );
 
       return res.status(200).json({
         success: true,
-        requests,
+
+        totalRequests,
+
+        currentPage,
+
+        totalPages:
+          Math.ceil(
+            totalRequests /
+              pageLimit
+          ),
+
+        requests:
+          paginatedRequests,
       });
     } catch (error) {
+      console.log(error);
+
       return res.status(500).json({
         success: false,
+        message:
+          "Failed to fetch requests",
       });
     }
   };
-
   exports.approveRequest =
   async (req, res) => {
     try {
