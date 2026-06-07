@@ -5,8 +5,12 @@ export const getDashboardStatsForAdmin = () =>
   API.get("/borrow/getDashboardStatsForAdmin");
 
 // Users
-export const getAllUsers = () =>
-  API.get("/user/getAllUsers");
+export const getAllUsers = (
+  params
+) =>
+  API.get("/admin/users", {
+    params,
+  });
 
 export const deleteUser = (userId) =>
   API.delete(`/user/deleteUser/${userId}`);

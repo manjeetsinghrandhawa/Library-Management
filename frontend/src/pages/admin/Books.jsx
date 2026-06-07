@@ -6,6 +6,25 @@ import { FiBookOpen } from "react-icons/fi";
 import toast from "react-hot-toast";
 
 function Books() {
+
+  const [search, setSearch] =
+  useState("");
+
+const [category, setCategory] =
+  useState("");
+
+const [available, setAvailable] =
+  useState(false);
+
+const [sort, setSort] =
+  useState("newest");
+
+const [page, setPage] =
+  useState(1);
+
+const [totalPages, setTotalPages] =
+  useState(1);
+
   const [books, setBooks] = useState([]);
 
   const [showAddModal, setShowAddModal] =
@@ -33,26 +52,35 @@ function Books() {
     });
 
   useEffect(() => {
-    fetchBooks();
-  }, []);
+  fetchBooks();
+}, [
+  search,
+  category,
+  available,
+  sort,
+  page,
+]);
 
-  const fetchBooks =
-    async () => {
-      try {
-        const response =
-          await API.get(
-            "/books/getAllBooks"
-          );
+  const fetchBooks = async () => {
+  try {
+    const response =
+      await API.get(
+        `/books/getAllBooks?search=${search}&category=${category}&available=${available}&sort=${sort}&page=${page}&limit=9`
+      );
 
-        setBooks(
-          response.data.books
-        );
-      } catch (error) {
-        toast.error(
-          "Failed to fetch books"
-        );
-      }
-    };
+    setBooks(
+      response.data.books || []
+    );
+
+    setTotalPages(
+      response.data.totalPages || 1
+    );
+  } catch (error) {
+    toast.error(
+      "Failed to fetch books"
+    );
+  }
+};
 
   const handleChange = (e) => {
     setFormData({
@@ -217,7 +245,7 @@ function Books() {
             Collection View
           </p>
 
-          <h1 className="text-5xl font-bold">
+          <h1 className="text-5xl font-bold text-slate-900">
             Books
           </h1>
 
@@ -230,7 +258,7 @@ function Books() {
         <div className="flex gap-4">
 
           <span className="bg-orange-100 text-orange-600 px-5 py-2 rounded-full font-semibold">
-            {books.length} Books
+            {books.length} showing
           </span>
 
           <button
@@ -245,6 +273,82 @@ function Books() {
         </div>
 
       </div>
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 mb-8">
+
+  <div className="grid md:grid-cols-4 gap-4">
+
+    <input
+      type="text"
+      placeholder="Search title, author or ISBN..."
+      value={search}
+      onChange={(e) => {
+        setPage(1);
+        setSearch(
+          e.target.value
+        );
+      }}
+      className="border border-slate-300 rounded-xl px-4 py-3 text-slate-600"
+    />
+
+    <input
+      type="text"
+      placeholder="Category"
+      value={category}
+      onChange={(e) => {
+        setPage(1);
+        setCategory(
+          e.target.value
+        );
+      }}
+      className="border border-slate-300 rounded-xl px-4 py-3 text-slate-600"
+    />
+
+    <select
+      value={sort}
+      onChange={(e) => {
+        setPage(1);
+        setSort(
+          e.target.value
+        );
+      }}
+      className="border border-slate-300 rounded-xl px-4 py-3 text-slate-600"
+    >
+      <option value="newest">
+        Newest
+      </option>
+
+      <option value="oldest">
+        Oldest
+      </option>
+
+      <option value="title">
+        Title A-Z
+      </option>
+    </select>
+
+    <label className="flex items-center gap-3 border border-slate-300 rounded-xl px-4 py-3 cursor-pointer">
+
+      <input
+        type="checkbox"
+        checked={available}
+        onChange={(e) => {
+          setPage(1);
+
+          setAvailable(
+            e.target.checked
+          );
+        }}
+      />
+
+      <span className="text-slate-600">
+        Available Only
+      </span>
+
+    </label>
+
+  </div>
+
+</div>
 
       {/* Books Grid */}
 
@@ -259,15 +363,15 @@ function Books() {
               <FiBookOpen />
             </div>
 
-            <h3 className="font-bold text-xl">
+            <h3 className="font-bold text-xl text-slate-500">
               {book.title}
             </h3>
 
-            <p className="text-gray-600">
+            <p className="text-slate-500">
               {book.author}
             </p>
 
-            <p className="mt-2">
+            <p className="mt-2 text-slate-500">
               Available:
               {" "}
               {
@@ -275,7 +379,7 @@ function Books() {
               }
             </p>
 
-            <span className="inline-block mt-2 bg-gray-100 px-3 py-1 rounded-full text-sm">
+            <span className="inline-block mt-2 bg-gray-100 px-3 py-1 rounded-full text-sm text-slate-500">
               {book.availableCopies >
               0
                 ? "In Stock"
@@ -322,6 +426,46 @@ function Books() {
 
       </div>
 
+      {totalPages > 1 && (
+  <div className="flex justify-center items-center gap-4 mt-10">
+
+    <button
+      disabled={page === 1}
+      onClick={() =>
+        setPage(page - 1)
+      }
+      className={`px-4 py-2 rounded-xl ${
+        page === 1
+          ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+          : "bg-white border hover:bg-slate-50"
+      }`}
+    >
+      Previous
+    </button>
+
+    <div className="bg-blue-600 text-white px-5 py-2 rounded-xl font-semibold">
+      {page} / {totalPages}
+    </div>
+
+    <button
+      disabled={
+        page === totalPages
+      }
+      onClick={() =>
+        setPage(page + 1)
+      }
+      className={`px-4 py-2 rounded-xl ${
+        page === totalPages
+          ? "bg-slate-100 text-slate-400 cursor-not-allowed"
+          : "bg-white border hover:bg-slate-50"
+      }`}
+    >
+      Next
+    </button>
+
+  </div>
+)}
+
       {/* Add Modal */}
 
       {showAddModal && (
@@ -366,13 +510,13 @@ function Books() {
 
             <div className="bg-white p-8 rounded-xl w-[600px]">
 
-              <h2 className="text-2xl font-bold mb-4">
+              <h2 className="text-2xl font-bold mb-4 text-slate-500">
                 {
                   selectedBook.title
                 }
               </h2>
 
-              <p>
+              <p className="text-slate-500">
                 <strong>
                   Author:
                 </strong>{" "}
@@ -381,7 +525,7 @@ function Books() {
                 }
               </p>
 
-              <p>
+              <p className="text-slate-500">
                 <strong>
                   ISBN:
                 </strong>{" "}
@@ -390,7 +534,7 @@ function Books() {
                 }
               </p>
 
-              <p>
+              <p className="text-slate-500">
                 <strong>
                   Category:
                 </strong>{" "}
@@ -399,7 +543,7 @@ function Books() {
                 }
               </p>
 
-              <p>
+              <p className="text-slate-500">
                 <strong>
                   Published:
                 </strong>{" "}
@@ -408,7 +552,7 @@ function Books() {
                 }
               </p>
 
-              <p>
+              <p className="text-slate-500">
                 <strong>
                   Total Copies:
                 </strong>{" "}
@@ -417,7 +561,7 @@ function Books() {
                 }
               </p>
 
-              <p>
+              <p className="text-slate-500">
                 <strong>
                   Available:
                 </strong>{" "}
@@ -426,7 +570,7 @@ function Books() {
                 }
               </p>
 
-              <p className="mt-4">
+              <p className="mt-4 text-slate-500">
                 {
                   selectedBook.description
                 }
@@ -466,7 +610,7 @@ function Modal({
         className="bg-white p-8 rounded-xl w-[650px] space-y-4"
       >
 
-        <h2 className="text-2xl font-bold">
+        <h2 className="text-2xl font-bold mb-4 text-slate-500">
           {title}
         </h2>
 
@@ -475,7 +619,7 @@ function Modal({
           placeholder="Title"
           value={formData.title}
           onChange={handleChange}
-          className="w-full border p-3 rounded"
+          className="w-full border p-3 rounded text-slate-500"
         />
 
         <input
@@ -483,7 +627,7 @@ function Modal({
           placeholder="Author"
           value={formData.author}
           onChange={handleChange}
-          className="w-full border p-3 rounded"
+          className="w-full border p-3 rounded text-slate-500"
         />
 
         <input
@@ -491,7 +635,7 @@ function Modal({
           placeholder="ISBN"
           value={formData.isbn}
           onChange={handleChange}
-          className="w-full border p-3 rounded"
+          className="w-full border p-3 rounded text-slate-500"
         />
 
         <input
@@ -499,7 +643,7 @@ function Modal({
           placeholder="Category"
           value={formData.category}
           onChange={handleChange}
-          className="w-full border p-3 rounded"
+          className="w-full border p-3 rounded text-slate-500"
         />
 
         <textarea
@@ -509,7 +653,7 @@ function Modal({
             formData.description
           }
           onChange={handleChange}
-          className="w-full border p-3 rounded"
+          className="w-full border p-3 rounded text-slate-500"
         />
 
         <input
@@ -519,7 +663,7 @@ function Modal({
             formData.publishedYear
           }
           onChange={handleChange}
-          className="w-full border p-3 rounded"
+          className="w-full border p-3 rounded text-slate-500"
         />
 
         <input
@@ -529,7 +673,7 @@ function Modal({
             formData.totalCopies
           }
           onChange={handleChange}
-          className="w-full border p-3 rounded"
+          className="w-full border p-3 rounded text-slate-500"
         />
 
         <input
@@ -539,7 +683,7 @@ function Modal({
             formData.availableCopies
           }
           onChange={handleChange}
-          className="w-full border p-3 rounded"
+          className="w-full border p-3 rounded text-slate-500"
         />
 
         <div className="flex gap-3">

@@ -1,8 +1,10 @@
+/* eslint-disable no-undef */
 import axios from "axios";
 
 const API = axios.create({
   baseURL:
-    "http://localhost:5000/api/v1/",
+    import.meta.env.VITE_BACKEND_URL ||
+    "http://localhost:8000/api/v1/",
 });
 
 API.interceptors.request.use(

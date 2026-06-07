@@ -104,23 +104,108 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.getAllUsers = async (req, res) => {
+exports.getAllUsers = async (
+  req,
+  res
+) => {
   try {
-    const users = await User.find({})
-      .select("-password")
-      .sort({ createdAt: -1 });
+    const {
+      search = "",
+      page = 1,
+      limit = 10,
+      sort = "newest",
+    } = req.query;
+
+    const query = {
+      role: "STUDENT",
+    };
+
+    if (search) {
+      query.$or = [
+        {
+          firstName: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          lastName: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+        {
+          email: {
+            $regex: search,
+            $options: "i",
+          },
+        },
+      ];
+    }
+
+    let sortOption = {};
+
+    switch (sort) {
+      case "oldest":
+        sortOption = {
+          createdAt: 1,
+        };
+        break;
+
+      case "name":
+        sortOption = {
+          firstName: 1,
+        };
+        break;
+
+      default:
+        sortOption = {
+          createdAt: -1,
+        };
+    }
+
+    const currentPage =
+      Number(page);
+
+    const pageLimit =
+      Number(limit);
+
+    const skip =
+      (currentPage - 1) *
+      pageLimit;
+
+    const totalUsers =
+      await User.countDocuments(
+        query
+      );
+
+    const users =
+      await User.find(query)
+        .select("-password")
+        .sort(sortOption)
+        .skip(skip)
+        .limit(pageLimit);
 
     return res.status(200).json({
       success: true,
-      count: users.length,
+
       users,
+
+      totalUsers,
+
+      currentPage,
+
+      totalPages: Math.ceil(
+        totalUsers / pageLimit
+      ),
     });
   } catch (error) {
     console.error(error);
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch users",
+      message:
+        "Failed to fetch users",
     });
   }
 };
