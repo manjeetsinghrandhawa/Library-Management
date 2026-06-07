@@ -123,52 +123,51 @@ exports.returnBook = async (
     }
 
     const returnDate =
-      new Date();
+        new Date();
 
-    let fine = 0;
+      if (
+        borrow.fine === 0 &&
+        returnDate >
+          borrow.dueDate
+      ) {
+        const lateDays =
+          Math.ceil(
+            (returnDate -
+              borrow.dueDate) /
+              (1000 *
+                60 *
+                60 *
+                24)
+          );
 
-    if (
-      returnDate > borrow.dueDate
-    ) {
-      const lateDays =
-        Math.ceil(
-          (returnDate -
-            borrow.dueDate) /
-            (1000 *
-              60 *
-              60 *
-              24)
+        borrow.fine =
+          lateDays * 10;
+      }
+
+      borrow.returnDate =
+        returnDate;
+
+      borrow.status =
+        "RETURNED";
+
+      await borrow.save();
+
+      const book =
+        await Book.findById(
+          borrow.book._id
         );
 
-      fine = lateDays * 10;
-    }
+      book.availableCopies += 1;
 
-    borrow.returnDate =
-      returnDate;
+      await book.save();
 
-    borrow.fine = fine;
-
-    borrow.status =
-      "RETURNED";
-
-    await borrow.save();
-
-    const book =
-      await Book.findById(
-        borrow.book._id
-      );
-
-    book.availableCopies += 1;
-
-    await book.save();
-
-    return res.status(200).json({
-      success: true,
-      message:
-        "Book returned successfully",
-      fine,
-    });
-  } catch (error) {
+      return res.status(200).json({
+        success: true,
+        message:
+          "Book returned successfully",
+        fine: borrow.fine,
+      });
+    } catch (error) {
     console.error(error);
 
     return res.status(500).json({
@@ -896,6 +895,9 @@ exports.requestBook =
         });
       }
 
+      const borrowDate =
+        new Date();
+
       const dueDate =
         new Date();
 
@@ -906,6 +908,7 @@ exports.requestBook =
       await Borrow.create({
         user: request.user,
         book: request.book,
+        borrowDate,
         dueDate,
       });
 
