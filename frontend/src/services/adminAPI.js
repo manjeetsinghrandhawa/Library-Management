@@ -73,10 +73,10 @@ export const updateBook = (
   id,
   data
 ) =>
-  API.put(`/book/${id}`, data);
+  API.put(`/books/updateBook/${id}`, data);
 
 export const deleteBook = (id) =>
-  API.delete(`/book/${id}`);
+  API.delete(`/books/deleteBook/${id}`);
 
 export const requestBook = (bookId) =>
   API.post(`/borrow/requestBook/${bookId}`);

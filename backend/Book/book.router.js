@@ -27,14 +27,14 @@ router.post(
 );
 
 router.put(
-  "/:id",
+  "/updateBook/:id",
   auth,
   isAdmin,
   updateBook
 );
 
 router.delete(
-  "/:id",
+  "/deleteBook/:id",
   auth,
   isAdmin,
   deleteBook

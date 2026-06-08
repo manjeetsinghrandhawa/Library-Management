@@ -4,6 +4,10 @@ import { useEffect, useState } from "react";
 import API from "../../services/api";
 import { FiBookOpen } from "react-icons/fi";
 import toast from "react-hot-toast";
+import {
+  updateBook,
+  deleteBook,
+} from "../../services/adminApi";
 
 function Books() {
 
@@ -81,6 +85,8 @@ const [totalPages, setTotalPages] =
     );
   }
 };
+
+
 
   const handleChange = (e) => {
     setFormData({
@@ -182,56 +188,57 @@ const [totalPages, setTotalPages] =
     };
 
   const updateBookHandler =
-    async (e) => {
-      e.preventDefault();
+  async (e) => {
+    e.preventDefault();
 
-      try {
-        await API.put(
-          `/books/updateBook/${selectedBook._id}`,
-          formData
-        );
+    try {
+      await updateBook(
+        selectedBook._id,
+        formData
+      );
 
-        toast.success(
-          "Book updated"
-        );
+      toast.success(
+        "Book updated successfully"
+      );
 
-        setShowEditModal(false);
+      setShowEditModal(false);
 
-        fetchBooks();
-      } catch (error) {
-        toast.error(
-          error?.response?.data
-            ?.message ||
-            "Update failed"
-        );
-      }
-    };
+      fetchBooks();
+    } catch (error) {
+      toast.error(
+        error?.response?.data
+          ?.message ||
+          "Failed to update book"
+      );
+    }
+  };
 
   const deleteBookHandler =
-    async (id) => {
-      const confirmDelete =
-        window.confirm(
-          "Delete this book?"
-        );
+  async (id) => {
+    const confirmDelete =
+      window.confirm(
+        "Are you sure you want to delete this book?"
+      );
 
-      if (!confirmDelete) return;
+    if (!confirmDelete)
+      return;
 
-      try {
-        await API.delete(
-          `/books/deleteBook/${id}`
-        );
+    try {
+      await deleteBook(id);
 
-        toast.success(
-          "Book deleted"
-        );
+      toast.success(
+        "Book deleted successfully"
+      );
 
-        fetchBooks();
-      } catch (error) {
-        toast.error(
-          "Delete failed"
-        );
-      }
-    };
+      fetchBooks();
+    } catch (error) {
+      toast.error(
+        error?.response?.data
+          ?.message ||
+          "Failed to delete book"
+      );
+    }
+  };
 
   return (
     <div className="p-8">
