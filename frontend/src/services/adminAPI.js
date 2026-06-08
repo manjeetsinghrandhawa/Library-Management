@@ -8,7 +8,7 @@ export const getDashboardStatsForAdmin = () =>
 export const getAllUsers = (
   params
 ) =>
-  API.get("/admin/users", {
+  API.get("/user/getAllUsers", {
     params,
   });
 
@@ -27,7 +27,7 @@ export const getIssuedBooks = (
   params
 ) =>
   API.get(
-    "/admin/getIssuedBooks",
+    "/borrow/getIssuedBooks",
     {
       params,
     }
@@ -40,7 +40,7 @@ export const getOverdueBooks = () =>
 export const getAllRequests =
   (params) =>
     API.get(
-      "/admin/getAllRequests",
+      "/borrow/getAllRequests",
       {
         params,
       }

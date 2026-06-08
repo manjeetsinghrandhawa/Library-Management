@@ -20,11 +20,19 @@ import IssuedBooks from "./pages/admin/IssuedBooks"
 import ProtectedRoute from "./components/ProtectedRoute";
 import StudentBooks from "./pages/student/Books";
 import BorrowHistory from "./pages/student/BorrowHistory";
+import { Toaster } from "react-hot-toast";
 // import Navbar from "./components/Navbar";
 
 function App() {
   return (
     <BrowserRouter>
+     <Toaster
+        position="top-right"
+        reverseOrder={false}
+        toastOptions={{
+          duration: 3000,
+        }}
+      />
       <Routes>
 
 <Route

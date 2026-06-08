@@ -23,12 +23,12 @@ const {
     isAdmin,
 } = require("../middleware/auth");
 
-router.post(
-  "/borrowBook/:bookId",
-  auth,
-  isStudent,
-  borrowBook
-);
+// router.post(
+//   "/borrowBook/:bookId",
+//   auth,
+//   isStudent,
+//   borrowBook
+// );
 
 router.put(
   "/returnBook/:borrowId",
@@ -88,7 +88,7 @@ router.get(
 );
 
 router.get(
-  "/getallRequests",
+  "/getAllRequests",
   auth,
   isAdmin,
   getAllRequests

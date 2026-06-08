@@ -4,82 +4,82 @@ const Borrow = require("./borrow.model");
 const BorrowRequest = require("./borrowRequest.model");
 const User = require("../User/user.model");
 
-exports.borrowBook = async (req, res) => {
-  try {
-    const { bookId } = req.params;
+// exports.borrowBook = async (req, res) => {
+//   try {
+//     const { bookId } = req.params;
 
-    const userId = req.user._id;
+//     const userId = req.user._id;
 
-    const book = await Book.findById(
-      bookId
-    );
+//     const book = await Book.findById(
+//       bookId
+//     );
 
-    if (!book) {
-      return res.status(404).json({
-        success: false,
-        message: "Book not found",
-      });
-    }
+//     if (!book) {
+//       return res.status(404).json({
+//         success: false,
+//         message: "Book not found",
+//       });
+//     }
 
-    if (book.availableCopies <= 0) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "Book currently unavailable",
-      });
-    }
+//     if (book.availableCopies <= 0) {
+//       return res.status(400).json({
+//         success: false,
+//         message:
+//           "Book currently unavailable",
+//       });
+//     }
 
-    const existingBorrow =
-      await Borrow.findOne({
-        user: userId,
-        book: bookId,
-        status: "BORROWED",
-      });
+//     const existingBorrow =
+//       await Borrow.findOne({
+//         user: userId,
+//         book: bookId,
+//         status: "BORROWED",
+//       });
 
-    if (existingBorrow) {
-      return res.status(400).json({
-        success: false,
-        message:
-          "You already borrowed this book",
-      });
-    }
+//     if (existingBorrow) {
+//       return res.status(400).json({
+//         success: false,
+//         message:
+//           "You already borrowed this book",
+//       });
+//     }
 
-    const borrowDate = new Date();
+//     const borrowDate = new Date();
 
-    const dueDate = new Date();
+//     const dueDate = new Date();
 
-    dueDate.setDate(
-      dueDate.getDate() + 14
-    );
+//     dueDate.setDate(
+//       dueDate.getDate() + 14
+//     );
 
-    const borrow =
-      await Borrow.create({
-        user: userId,
-        book: bookId,
-        borrowDate,
-        dueDate,
-      });
+//     const borrow =
+//       await Borrow.create({
+//         user: userId,
+//         book: bookId,
+//         borrowDate,
+//         dueDate,
+//       });
 
-    book.availableCopies -= 1;
+//     book.availableCopies -= 1;
 
-    await book.save();
+//     await book.save();
 
-    return res.status(201).json({
-      success: true,
-      message:
-        "Book borrowed successfully",
-      borrow,
-    });
-  } catch (error) {
-    console.error(error);
+//     return res.status(201).json({
+//       success: true,
+//       message:
+//         "Book borrowed successfully",
+//       borrow,
+//     });
+//   } catch (error) {
+//     console.error(error);
 
-    return res.status(500).json({
-      success: false,
-      message:
-        "Failed to borrow book",
-    });
-  }
-};
+//     return res.status(500).json({
+//       success: false,
+//       message:
+//         "Failed to borrow book",
+//     });
+//   }
+// };
 
 exports.returnBook = async (
   req,
@@ -578,20 +578,25 @@ exports.requestBook =
       const { bookId } =
         req.params;
 
-      const existing =
-        await BorrowRequest.findOne({
-          user: req.user._id,
-          book: bookId,
-          status: "PENDING",
-        });
+      const existingBorrow =
+  await Borrow.findOne({
+    user: req.user._id,
+    book: bookId,
+    status: {
+      $in: [
+        "BORROWED",
+        "OVERDUE",
+      ],
+    },
+  });
 
-      if (existing) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Request already pending",
-        });
-      }
+if (existingBorrow) {
+  return res.status(400).json({
+    success: false,
+    message:
+      "You already have this book",
+  });
+}
 
       const request =
         await BorrowRequest.create({
@@ -863,98 +868,202 @@ exports.requestBook =
       });
     }
   };
-  exports.approveRequest =
-  async (req, res) => {
-    try {
-      const { requestId } =
-        req.params;
+  exports.approveRequest = async (
+  req,
+  res
+) => {
+  const session =
+    await mongoose.startSession();
 
-      const request =
-        await BorrowRequest.findById(
-          requestId
-        );
+  session.startTransaction();
 
-      if (!request) {
-        return res.status(404).json({
-          success: false,
-        });
-      }
+  try {
+    const { requestId } =
+      req.params;
 
-      const book =
-        await Book.findById(
-          request.book
-        );
+    const request =
+      await BorrowRequest.findById(
+        requestId
+      ).session(session);
 
-      if (
-        book.availableCopies <= 0
-      ) {
-        return res.status(400).json({
-          success: false,
-          message:
-            "Book unavailable",
-        });
-      }
+    if (!request) {
+      await session.abortTransaction();
 
-      const borrowDate =
-        new Date();
+      return res.status(404).json({
+        success: false,
+        message:
+          "Request not found",
+      });
+    }
 
-      const dueDate =
-        new Date();
+    // Already processed
+    if (
+      request.status !==
+      "PENDING"
+    ) {
+      await session.abortTransaction();
 
-      dueDate.setDate(
-        dueDate.getDate() + 14
-      );
+      return res.status(400).json({
+        success: false,
+        message:
+          "Request already processed",
+      });
+    }
 
-      await Borrow.create({
+    const book =
+      await Book.findById(
+        request.book
+      ).session(session);
+
+    if (!book) {
+      await session.abortTransaction();
+
+      return res.status(404).json({
+        success: false,
+        message:
+          "Book not found",
+      });
+    }
+
+    if (
+      book.availableCopies <= 0
+    ) {
+      await session.abortTransaction();
+
+      return res.status(400).json({
+        success: false,
+        message:
+          "Book unavailable",
+      });
+    }
+
+    // Prevent duplicate active borrow
+    const existingBorrow =
+      await Borrow.findOne({
         user: request.user,
         book: request.book,
-        borrowDate,
-        dueDate,
-      });
+        status: {
+          $in: [
+            "BORROWED",
+            "OVERDUE",
+          ],
+        },
+      }).session(session);
 
-      book.availableCopies--;
+    if (existingBorrow) {
+      await session.abortTransaction();
 
-      await book.save();
-
-      request.status =
-        "APPROVED";
-
-      await request.save();
-
-      return res.status(200).json({
-        success: true,
+      return res.status(400).json({
+        success: false,
         message:
-          "Request approved",
-      });
-    } catch (error) {
-      return res.status(500).json({
-        success: false,
+          "User already has this book",
       });
     }
-  };
 
-exports.rejectRequest =
-  async (req, res) => {
-    try {
-      const { requestId } =
-        req.params;
+    const dueDate =
+      new Date();
 
-      const request =
-        await BorrowRequest.findById(
-          requestId
-        );
+    dueDate.setDate(
+      dueDate.getDate() + 14
+    );
 
-      request.status =
-        "REJECTED";
+    await Borrow.create(
+      [
+        {
+          user: request.user,
+          book: request.book,
+          dueDate,
+        },
+      ],
+      { session }
+    );
 
-      await request.save();
+    book.availableCopies -= 1;
 
-      return res.status(200).json({
-        success: true,
-      });
-    } catch (error) {
-      return res.status(500).json({
+    await book.save({
+      session,
+    });
+
+    request.status =
+      "APPROVED";
+
+    await request.save({
+      session,
+    });
+
+    await session.commitTransaction();
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Request approved successfully",
+    });
+  } catch (error) {
+    await session.abortTransaction();
+
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Failed to approve request",
+    });
+  } finally {
+    session.endSession();
+  }
+};
+
+exports.rejectRequest = async (
+  req,
+  res
+) => {
+  try {
+    const { requestId } =
+      req.params;
+
+    const request =
+      await BorrowRequest.findById(
+        requestId
+      );
+
+    if (!request) {
+      return res.status(404).json({
         success: false,
+        message:
+          "Request not found",
       });
     }
-  };
+
+    // Prevent rejecting an already processed request
+    if (
+      request.status !==
+      "PENDING"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message:
+          `Request already ${request.status.toLowerCase()}`,
+      });
+    }
+
+    request.status =
+      "REJECTED";
+
+    await request.save();
+
+    return res.status(200).json({
+      success: true,
+      message:
+        "Request rejected successfully",
+      request,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message:
+        "Failed to reject request",
+    });
+  }
+};
